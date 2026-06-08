@@ -1,8 +1,10 @@
 /**
  * Componente Logo
  * Muestra el logo del Hotel Vista al Mar junto al nombre.
- * Usa la imagen pública /logo_del_hotel.jpeg
+ * Usa la imagen pública logo_del_hotel.jpeg
  */
+import { publicUrl } from '../lib/assets';
+
 interface LogoProps {
   /** Variante para contextos claros u oscuros */
   variant?: 'default' | 'white';
@@ -14,7 +16,7 @@ export function Logo({ size = 40 }: LogoProps) {
   return (
     <div className="flex items-center gap-3">
       <img
-        src="/logo_del_hotel.jpeg"
+        src={publicUrl('logo_del_hotel.jpeg')}
         alt="Hotel Vista al Mar"
         style={{ width: size, height: size }}
         className="object-contain rounded"

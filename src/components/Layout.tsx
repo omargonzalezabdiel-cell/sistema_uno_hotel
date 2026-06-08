@@ -16,7 +16,7 @@ import { LayoutDashboard, ListChecks, Search, Users, LogOut, PlusCircle } from '
 import { useAuth } from '../context/AuthContext';
 import { canManageUsers, canCreateRequest, getRoleLabel } from '../lib/auth';
 import { Logo } from './Logo';
-import type { RouterState } from '../types';
+import type { RouterState, PageName } from '../types';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -27,14 +27,14 @@ interface LayoutProps {
 export function Layout({ children, onNavigate, currentPage }: LayoutProps) {
   const { user, logout } = useAuth();
 
-  const navItems = [
-    { page: 'dashboard' as const, label: 'Inicio', Icon: LayoutDashboard },
-    { page: 'requests-list' as const, label: 'Solicitudes', Icon: ListChecks },
-    { page: 'search' as const, label: 'Buscar', Icon: Search },
+  const navItems: { page: PageName; label: string; Icon: typeof LayoutDashboard }[] = [
+    { page: 'dashboard', label: 'Inicio', Icon: LayoutDashboard },
+    { page: 'requests-list', label: 'Solicitudes', Icon: ListChecks },
+    { page: 'search', label: 'Buscar', Icon: Search },
   ];
 
   if (canManageUsers(user)) {
-    navItems.push({ page: 'users' as const, label: 'Usuarios', Icon: Users });
+    navItems.push({ page: 'users', label: 'Usuarios', Icon: Users });
   }
 
   return (

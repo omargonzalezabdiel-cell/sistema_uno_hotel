@@ -15,7 +15,7 @@
  * - Modo edición (requestId prop) para modificar solicitudes existentes
  */
 import { useState, useEffect, useCallback } from 'react';
-import { User, Phone, Mail, Calendar, Users, Upload, X, CheckCircle } from 'lucide-react';
+import { User, Phone, Calendar, Users, Upload, X, CheckCircle } from 'lucide-react';
 import {
   calcularNoches,
   calcularTotal,

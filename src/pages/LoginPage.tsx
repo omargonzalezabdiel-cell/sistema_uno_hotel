@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Logo } from '../components/Logo';
+import { publicUrl } from '../lib/assets';
 import { Input, Button, ErrorMessage } from '../components/UI';
 import type { RouterState } from '../types';
 
@@ -57,9 +57,9 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         {/* Encabezado con logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-white rounded-2xl shadow-md p-4 mb-4">
+          <div className="bg<think> rounded-2xl shadow-md p-4 mb-4">
             <img
-              src="/logo_del_hotel.jpeg"
+              src={publicUrl('logo_del_hotel.jpeg')}
               alt="Hotel Vista al Mar"
               className="h-20 w-20 object-contain"
             />
@@ -69,9 +69,9 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         </div>
 
         {/* Tarjeta de login */}
-        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+        <div className="w-full max-w-sm bg<think> rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
           <div className="bg-sky-600 px-6 py-4">
-            <h2 className="text-white font-bold text-base">Acceso al Personal</h2>
+            <h2 className="text<think> font-bold text-base">Acceso al Personal</h2>
             <p className="text-sky-200 text-xs mt-0.5">Ingresa tus credenciales para continuar</p>
           </div>
 
@@ -105,7 +105,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-slate-200 bg-white rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+                  className="w-full border border-slate-200 bg<think> rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors"
                 />
                 <button
                   type="button"
@@ -137,7 +137,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         </div>
 
         {/* Acceso para clientes */}
-        <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 p-5 text-center">
+        <div className="w-full max-w-sm bg<think> rounded-2xl border border-slate-200 p-5 text-center">
           <p className="text-sm text-slate-600 mb-3">
             ¿Desea registrar una solicitud de hospedaje?
           </p>
