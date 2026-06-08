@@ -15,7 +15,7 @@
  * - Modo edición (requestId prop) para modificar solicitudes existentes
  */
 import { useState, useEffect, useCallback } from 'react';
-import { User, Phone, Calendar, Users, Upload, X, CheckCircle } from 'lucide-react';
+import { User, Phone, Calendar, Users, Upload, X, CheckCircle, LogIn } from 'lucide-react';
 import {
   calcularNoches,
   calcularTotal,
@@ -295,15 +295,16 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
 
   return (
     <div className={isPublic ? 'min-h-screen bg-slate-50' : ''}>
-      {/* Header público */}
+      {/* Header público mejorado */}
       {isPublic && (
         <div className="bg-white border-b border-slate-200 px-4 py-4 sticky top-0 z-10 shadow-sm">
           <div className="max-w-lg mx-auto flex items-center justify-between">
             <Logo size={36} />
             <button
               onClick={() => onNavigate({ page: 'login' })}
-              className="text-xs text-sky-600 font-semibold hover:underline"
+              className="flex items-center gap-2 bg-sky-50 text-sky-700 text-sm font-semibold px-4 py-2 rounded-xl hover:bg-sky-100 active:scale-95 transition-all border border-sky-200"
             >
+              <LogIn className="h-4 w-4" />
               Acceso Personal
             </button>
           </div>
@@ -583,6 +584,22 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
             </Button>
           </div>
         </form>
+
+        {/* Footer público con acceso a personal */}
+        {isPublic && (
+          <div className="mt-8 pt-6 border-t border-slate-200 text-center pb-8">
+            <p className="text-sm text-slate-500 mb-3">
+              ¿Eres parte del personal del hotel?
+            </p>
+            <button
+              onClick={() => onNavigate({ page: 'login' })}
+              className="inline-flex items-center gap-2 bg-sky-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-sky-700 active:scale-95 transition-all"
+            >
+              <LogIn className="h-4 w-4" />
+              Acceso al Sistema
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

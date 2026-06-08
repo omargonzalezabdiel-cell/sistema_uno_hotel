@@ -7,10 +7,11 @@
  * - Redirige al dashboard tras login exitoso
  * - Incluye botón para que clientes registren solicitudes (acceso público)
  */
-import { useState } from 'react';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Eye, EyeOff, LogIn, Wifi, WifiOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { publicUrl } from '../lib/assets';
+import { supabase } from '../lib/supabase';
 import { Input, Button, ErrorMessage } from '../components/UI';
 import type { RouterState } from '../types';
 
@@ -28,6 +29,29 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Diagnóstico de conexión a Supabase
+  const [connStatus, setConnStatus] = useState<'checking' | 'ok' | 'error'>('checking');
+  const [connMessage, setConnMessage] = useState('');
+
+  useEffect(() => {
+    async function checkConnection() {
+      try {
+        const { error } = await supabase.from('users').select('id').limit(1);
+        if (error) {
+          setConnStatus('error');
+          setConnMessage('No se puede conectar con la base de datos. Verifica la configuración.');
+        } else {
+          setConnStatus('ok');
+          setConnMessage('Conexión con la base de datos activa.');
+        }
+      } catch (e) {
+        setConnStatus('error');
+        setConnMessage('Error de conexión: ' + String(e));
+      }
+    }
+    checkConnection();
+  }, []);
+
   /** Maneja el envío del formulario de login */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -35,6 +59,11 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
 
     if (!username.trim() || !password) {
       setError('Por favor ingresa tu usuario y contraseña.');
+      return;
+    }
+
+    if (connStatus === 'error') {
+      setError('No hay conexión con el servidor. Intenta más tarde.');
       return;
     }
 
@@ -57,7 +86,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         {/* Encabezado con logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="bg<think> rounded-2xl shadow-md p-4 mb-4">
+          <div className="bg-white rounded-2xl shadow-md p-4 mb-4">
             <img
               src={publicUrl('logo_del_hotel.jpeg')}
               alt="Hotel Vista al Mar"
@@ -68,10 +97,37 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
           <p className="text-sm text-slate-500 mt-1">Hotel &amp; Boutique — Sistema de Gestión</p>
         </div>
 
+        {/* Indicador de conexión */}
+        {connStatus === 'checking' && (
+          <div className="w-full max-w-sm mb-4 flex items-center gap-2 text-xs text-slate-400 bg-white rounded-xl px-4 py-2 border border-slate-100">
+            <div className="animate-spin h-3 w-3 border-2 border-sky-500 border-t-transparent rounded-full" />
+            Verificando conexión con el servidor...
+          </div>
+        )}
+        {connStatus === 'ok' && (
+          <div className="w-full max-w-sm mb-4 flex items-center gap-2 text-xs text-emerald-600 bg-emerald-50 rounded-xl px-4 py-2 border border-emerald-100">
+            <Wifi className="h-3 w-3" />
+            {connMessage}
+          </div>
+        )}
+        {connStatus === 'error' && (
+          <div className="w-full max-w-sm mb-4 flex items-start gap-2 text-xs text-amber-700 bg-amber-50 rounded-xl px-4 py-3 border border-amber-200">
+            <WifiOff className="h-3 w-3 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">{connMessage}</p>
+              <p className="mt-1 text-amber-600">
+                Si eres el administrador, verifica que las variables de entorno
+                VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY estén configuradas
+                correctamente en los secrets de GitHub.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Tarjeta de login */}
-        <div className="w-full max-w-sm bg<think> rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+        <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
           <div className="bg-sky-600 px-6 py-4">
-            <h2 className="text<think> font-bold text-base">Acceso al Personal</h2>
+            <h2 className="text-white font-bold text-base">Acceso al Personal</h2>
             <p className="text-sky-200 text-xs mt-0.5">Ingresa tus credenciales para continuar</p>
           </div>
 
@@ -105,7 +161,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
                   autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-slate-200 bg<think> rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors"
+                  className="w-full border border-slate-200 bg-white rounded-xl px-3 py-2.5 pr-10 text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-colors"
                 />
                 <button
                   type="button"
@@ -121,6 +177,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
             <Button
               type="submit"
               loading={loading}
+              disabled={connStatus === 'error'}
               className="w-full mt-2"
             >
               <LogIn className="h-4 w-4" />
@@ -137,7 +194,7 @@ export function LoginPage({ onNavigate }: LoginPageProps) {
         </div>
 
         {/* Acceso para clientes */}
-        <div className="w-full max-w-sm bg<think> rounded-2xl border border-slate-200 p-5 text-center">
+        <div className="w-full max-w-sm bg-white rounded-2xl border border-slate-200 p-5 text-center">
           <p className="text-sm text-slate-600 mb-3">
             ¿Desea registrar una solicitud de hospedaje?
           </p>
