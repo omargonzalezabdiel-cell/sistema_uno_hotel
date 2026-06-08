@@ -39,62 +39,46 @@ Reemplaza `TU_USUARIO` con tu nombre de usuario de GitHub.
 
 ---
 
-## Paso 3: Configurar GitHub Pages
+## Paso 3: Configurar Secrets de Entorno (MUY IMPORTANTE)
 
-1. En tu repositorio de GitHub, ve a la pestana **Settings**.
-2. En el menu lateral izquierdo, haz clic en **Pages**.
-3. En **Source**, selecciona **Deploy from a branch**.
-4. En **Branch**, selecciona `gh-pages` y carpeta `/ (root)`.
-5. Haz clic en **Save**.
+Tu aplicacion necesita las variables de entorno de Supabase para funcionar. Como el archivo `.env` NO se sube a GitHub (esta en `.gitignore` por seguridad), debes configurarlas como **secrets** en GitHub:
 
-> Nota: La rama `gh-pages` se creara automaticamente en el Paso 4.
+1. En tu repositorio de GitHub, ve a **Settings**.
+2. En el menu lateral izquierdo, haz clic en **Secrets and variables > Actions**.
+3. Haz clic en **New repository secret**.
+4. Agrega estos dos secrets exactamente con estos nombres:
 
----
+   - **Name:** `VITE_SUPABASE_URL`
+   - **Secret:** `https://nqccoildvzhwqtykxacq.supabase.co`
 
-## Paso 4: Instalar Dependencias y Compilar
+   - **Name:** `VITE_SUPABASE_ANON_KEY`
+   - **Secret:** `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xY2NvaWxkdnpod3F0eWt4YWNxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzM3NTEsImV4cCI6MjA5NjUwOTc1MX0.6P5DF-LKtwxOmkdF3Q1ENq1KCid9KJUHK9KHTChnXuk`
 
-En tu computadora, dentro de la carpeta del proyecto:
+5. Haz clic en **Add secret** para cada uno.
 
-```bash
-# Instalar dependencias
-npm install
-
-# Compilar para produccion
-npm run build
-```
-
-Esto generara la carpeta `dist/` con los archivos listos para desplegar.
+> **Sin estos secrets, la aplicacion se desplegara pero mostrara pantalla en blanco o errores de conexion.**
 
 ---
 
-## Paso 5: Desplegar con gh-pages
+## Paso 4: Configurar GitHub Pages
 
-Instala el paquete `gh-pages` como dependencia de desarrollo:
+1. En tu repositorio, ve a **Settings > Pages**.
+2. En **Source**, selecciona **GitHub Actions**.
+3. El workflow ya esta configurado en `.github/workflows/deploy.yml (se subio con el cod).
 
-```bash
-npm install --save-dev gh-pages
-```
+---
 
-Agrega estos scripts en tu `package.json`:
+## Paso 5: Desplegar Automaticamente
 
-```json
-"scripts": {
-  "dev": "vite",
-  "build": "vite build",
-  "preview": "vite preview",
-  "lint": "eslint .",
-  "typecheck": "tsc --noEmit -p tsconfig.app.json",
-  "deploy": "gh-pages -d dist"
-}
-```
+Cada vez que hagas `git push` a la rama `main`, GitHub Actions automaticamente:
+1. Instala las dependencias
+2. Compila la aplicacion con las variables de entorno
+3. Despliega a GitHub Pages
 
-Luego ejecuta:
-
-```bash
-npm run deploy
-```
-
-Esto subira automaticamente el contenido de la carpeta `dist/` a la rama `gh-pages`.
+Tambien puedes ejecutar el workflow manualmente:
+1. Ve a **Actions** en tu repositorio.
+2. Selecciona el workflow **Deploy to GitHub Pages**.
+3. Haz clic en **Run workflow**.
 
 ---
 
@@ -111,7 +95,7 @@ Puedes encontrar la URL exacta en:
 
 ---
 
-## Configuracion ya Aplicada
+## Configuracion ya Aplicada en el Proyecto
 
 El proyecto ya incluye las siguientes configuraciones para GitHub Pages:
 
@@ -148,6 +132,10 @@ Un `ErrorBoundary` captura errores de React y muestra un mensaje en pantalla en 
 
 Las variables de Supabase se leen con `import.meta.env` y el cliente se inicializa sin lanzar excepciones si faltan.
 
+### 6. Script de diagnostico
+
+El `index.html` incluye un script que captura errores globales y los muestra en pantalla para facilitar la depuracion.
+
 ---
 
 ## Solucion de Problemas
@@ -155,9 +143,10 @@ Las variables de Supabase se leen con `import.meta.env` y el cliente se iniciali
 ### Pantalla en blanco despues del despliegue
 
 1. Abre las **Herramientas de Desarrollo** del navegador (F12).
-2. Ve a la pestana **Console** y busca errores 404.
-3. Verifica que la URL del repositorio coincida con `base` en `vite.config.ts`.
-4. Si cambiaste el nombre del repositorio, actualiza `base` en `vite.config.ts`.
+2. Ve a la pestana **Console** y busca errores.
+3. Verifica que configuraste los **secrets** `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en GitHub.
+4. Verifica que GitHub Pages esta configurado para usar **GitHub Actions** como fuente.
+5. Ve a **Actions** en tu repositorio y verifica que el workflow se ejecuto sin errores.
 
 ### Error 404 en assets (JS/CSS)
 
@@ -169,7 +158,9 @@ base: '/NOMBRE_DEL_REPOSITORIO/',
 
 ### Variables de entorno no funcionan
 
-GitHub Pages es estatico, las variables de entorno se inyectan en **build time**. Asegurate de que el archivo `.env` exista antes de compilar. **No subas el archivo `.env` a GitHub** (ya esta en `.gitignore`).
+GitHub Pages es estatico, las variables de entorno se inyectan en **build time** (cuando GitHub Actions compila). Asegurate de:
+1. Configurar los secrets en **Settings > Secrets and variables > Actions**.
+2. Que el workflow de GitHub Actions las pase al comando de build.
 
 ---
 
@@ -178,19 +169,15 @@ GitHub Pages es estatico, las variables de entorno se inyectan en **build time**
 Cada vez que hagas cambios:
 
 ```bash
-npm run build
-npm run deploy
+git add .
+git commit -m "Descripcion de los cambios"
+git push origin main
 ```
 
-O si prefieres usar GitHub Actions para despliegue automatico:
-
-1. Ve a **Settings > Pages**.
-2. Cambia el origen a **GitHub Actions**.
-3. Selecciona el workflow para **Vite / React**.
-4. GitHub desplegara automaticamente cada vez que hagas push a `main`.
+GitHub Actions desplegara automaticamente la nueva version.
 
 ---
 
 ## Contacto
 
-Si tienes problemas, revisa la consola del navegador y los mensajes del Error Boundary para diagnosticar el problema.
+Si tienes problemas, revisa la consola del navegador y los mensajes del Error Boundary para diagnosticar el problema. Tambien verifica la pestana **Actions** en GitHub para ver si el workflow fallo.
