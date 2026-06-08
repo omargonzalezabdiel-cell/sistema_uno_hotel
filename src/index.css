@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Tipografía del sistema — sin fuentes externas para mejor rendimiento */
+@layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Mejora el render de inputs en iOS */
+  input, select, textarea, button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /* Scroll suave en toda la app */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+@layer components {
+  /* Tap highlight para elementos interactivos en móvil */
+  .tap-highlight-none {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Animación suave de entrada para las tarjetas */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.2s ease-out;
+}
