@@ -7,47 +7,9 @@
     <meta name="theme-color" content="#0284c7" />
     <meta name="description" content="Sistema de gestión de solicitudes de hospedaje - Hotel Visita al Mar, Panamá" />
     <title>Visita al Mar · Hotel &amp; Boutique</title>
-    <style>
-      #diag-panel {
-        position: fixed;
-        top: 0; left: 0; right: 0;
-        background: #fef2f2;
-        border-bottom: 2px solid #ef4444;
-        padding: 12px 16px;
-        font-family: monospace;
-        font-size: 12px;
-        color: #991b1b;
-        z-index: 99999;
-        max-height: 200px;
-        overflow: auto;
-        display: none;
-      }
-      #diag-panel.show { display: block; }
-      #diag-panel div { margin: 2px 0; padding: 2px 0; border-bottom: 1px solid #fecaca; }
-    </style>
   </head>
   <body>
-    <div id="diag-panel"></div>
     <div id="root"></div>
-    <script>
-      (function() {
-        var panel = document.getElementById('diag-panel');
-        function show(msg, type) {
-          panel.className = 'show';
-          var entry = document.createElement('div');
-          entry.textContent = '[' + (type || 'INFO') + '] ' + msg;
-          panel.appendChild(entry);
-        }
-        window.addEventListener('error', function(e) {
-          show(e.message + ' at ' + (e.filename || '') + ':' + (e.lineno || 0), 'ERROR');
-        });
-        window.addEventListener('unhandledrejection', function(e) {
-          show(String(e.reason), 'PROMISE_REJECTION');
-        });
-        show('URL: ' + location.href, 'INFO');
-        show('UserAgent: ' + navigator.userAgent.slice(0, 60), 'INFO');
-      })();
-    </script>
     <script type="module" src="./src/main.tsx"></script>
   </body>
 </html>
