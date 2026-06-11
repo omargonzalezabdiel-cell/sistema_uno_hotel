@@ -44,3 +44,13 @@
 .animate-fade-in-up {
   animation: fadeInUp 0.2s ease-out;
 }
+
+/* ============================================================
+   PRINT STYLES — reservation document
+   ============================================================ */
+@media print {
+  header, nav, .no-print { display: none !important; }
+  main { padding: 0 !important; max-width: 100% !important; }
+  body { background: white !important; }
+  .pb-24 { padding-bottom: 0 !important; }
+}

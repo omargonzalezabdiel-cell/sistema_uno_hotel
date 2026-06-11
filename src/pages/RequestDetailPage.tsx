@@ -1,26 +1,15 @@
-/**
- * Página de Detalle de Solicitud
- *
- * Muestra todos los datos de una solicitud de hospedaje:
- * - Datos del responsable del grupo
- * - Fechas de llegada, salida de Panamá y salida del hotel
- * - Lista completa de viajeros con pasaporte y celular
- * - Resumen de costo estimado
- * - Acciones: editar, eliminar, exportar a .txt
- *
- * Los permisos de edición y eliminación se validan según el rol del usuario.
- */
 import { useEffect, useState } from 'react';
 import {
   User, Calendar, Users, Mail, Phone, FileText,
-  Download, Pencil, Trash2, Eye
+  Download, Pencil, Trash2, Eye, BookCheck, ExternalLink
 } from 'lucide-react';
 import { getRequestDetail, deleteRequest, downloadTxt, generateTxtContent, formatDateTime, formatDate } from '../lib/requests';
-import { canEditRequest, canDeleteRequest } from '../lib/auth';
+import { getReservationByRequestId, generateReservation } from '../lib/reservations';
+import { canEditRequest, canDeleteRequest, canCreateRequest } from '../lib/auth';
 import { useAuth } from '../context/AuthContext';
 import { Card, PageHeader, Button, RoleBadge } from '../components/UI';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import type { RequestDetail, RouterState } from '../types';
+import type { RequestDetail, Reservation, RouterState } from '../types';
 
 interface RequestDetailPageProps {
   requestId: string;
@@ -30,23 +19,29 @@ interface RequestDetailPageProps {
 export function RequestDetailPage({ requestId, onNavigate }: RequestDetailPageProps) {
   const { user } = useAuth();
   const [detail, setDetail] = useState<RequestDetail | null>(null);
+  const [reservation, setReservation] = useState<Reservation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [generatingRes, setGeneratingRes] = useState(false);
+  const [resError, setResError] = useState('');
   const [showPreview, setShowPreview] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Cargar detalle de la solicitud
   useEffect(() => {
     let mounted = true;
     async function load() {
       setLoading(true);
-      const { data, error: err } = await getRequestDetail(requestId);
+      const [detResult, resResult] = await Promise.all([
+        getRequestDetail(requestId),
+        getReservationByRequestId(requestId),
+      ]);
       if (!mounted) return;
-      if (err || !data) {
-        setError(err ?? 'No se pudo cargar la solicitud.');
+      if (detResult.error || !detResult.data) {
+        setError(detResult.error ?? 'No se pudo cargar la solicitud.');
       } else {
-        setDetail(data);
+        setDetail(detResult.data);
+        setReservation(resResult.data);
       }
       setLoading(false);
     }
@@ -54,7 +49,23 @@ export function RequestDetailPage({ requestId, onNavigate }: RequestDetailPagePr
     return () => { mounted = false; };
   }, [requestId]);
 
-  /** Elimina la solicitud con confirmación */
+  async function handleGenerateReservation() {
+    if (!detail) return;
+    setGeneratingRes(true);
+    setResError('');
+    const { data, error: err } = await generateReservation(
+      requestId,
+      user?.id ?? null,
+      user?.username ?? null,
+    );
+    if (err || !data) {
+      setResError(err ?? 'Error al generar la reserva.');
+    } else {
+      setReservation(data);
+    }
+    setGeneratingRes(false);
+  }
+
   async function handleDelete() {
     if (!confirmDelete) {
       setConfirmDelete(true);
@@ -125,6 +136,55 @@ export function RequestDetailPage({ requestId, onNavigate }: RequestDetailPagePr
           </div>
         }
       />
+
+      {/* ──────────── SECCIÓN DE RESERVA ──────────── */}
+      {reservation ? (
+        <Card className="p-4 border-emerald-200 bg-emerald-50/40">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-emerald-100 rounded-xl">
+                <BookCheck className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-emerald-700">Reserva Generada</p>
+                <p className="text-lg font-bold text-emerald-800 leading-tight">
+                  #{reservation.reservation_number}
+                </p>
+                <p className="text-xs font-mono text-emerald-600">{reservation.verification_code}</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => onNavigate({ page: 'reservation-detail', requestId })}
+              className="px-3 bg-emerald-600 hover:bg-emerald-700"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span className="text-xs">Ver Reserva</span>
+            </Button>
+          </div>
+        </Card>
+      ) : canCreateRequest(user) ? (
+        <Card className="p-4 border-sky-200 bg-sky-50/40">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Sin reserva oficial</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Genera una reserva con número consecutivo, código QR y documento oficial.
+              </p>
+            </div>
+            <Button
+              onClick={handleGenerateReservation}
+              loading={generatingRes}
+              className="px-4 whitespace-nowrap bg-sky-600 hover:bg-sky-700"
+            >
+              <BookCheck className="h-4 w-4" />
+              Generar Reserva
+            </Button>
+          </div>
+          {resError && (
+            <p className="text-red-500 text-xs mt-2">{resError}</p>
+          )}
+        </Card>
+      ) : null}
 
       {/* Datos del Responsable */}
       <Card className="p-4">
@@ -225,10 +285,10 @@ export function RequestDetailPage({ requestId, onNavigate }: RequestDetailPagePr
         </div>
       </Card>
 
-      {/* Exportación */}
+      {/* Exportación de solicitud */}
       <Card className="p-4">
         <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wide mb-3">
-          Exportar
+          Exportar Solicitud
         </h2>
         <div className="flex gap-2 flex-wrap">
           <Button

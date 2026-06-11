@@ -97,6 +97,24 @@ export interface RequestFormData {
 }
 
 // ============================================================
+// RESERVAS
+// ============================================================
+
+/** Reserva oficial generada a partir de una solicitud */
+export interface Reservation {
+  id: string;
+  request_id: string;
+  reservation_number: number;
+  verification_code: string;
+  qr_url: string | null;
+  approved_by: string | null;
+  approved_by_name: string | null;
+  approved_at: string;
+  status: 'active' | 'cancelled';
+  created_at: string;
+}
+
+// ============================================================
 // ESTADÍSTICAS DEL DASHBOARD
 // ============================================================
 
@@ -121,10 +139,13 @@ export type PageName =
   | 'request-detail'
   | 'request-form'
   | 'search'
-  | 'users';
+  | 'users'
+  | 'reservation-detail'
+  | 'validate-reservation';
 
 /** Estado del enrutador */
 export interface RouterState {
   page: PageName;
   requestId?: string;
+  reservationCode?: string;
 }
