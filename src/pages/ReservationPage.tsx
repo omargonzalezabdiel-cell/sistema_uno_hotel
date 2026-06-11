@@ -15,6 +15,20 @@ const HOTEL_PHONE = '+507 6315-1015';
 const HOTEL_TITLE = 'HOTEL & BOUTIQUE VISTA AL MAR';
 const HOTEL_RUC = 'RUC1556766114-2-2019 DV79';
 
+function fmtDayMonthYear(iso: string): string {
+  const d = new Date(iso);
+  return `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+}
+
+function fmtTime12(iso: string): string {
+  const d = new Date(iso);
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+  h = h % 12 || 12;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
 export function ReservationPage({ requestId, onNavigate }: ReservationPageProps) {
   const [reservation, setReservation] = useState<Reservation | null>(null);
   const [detail, setDetail] = useState<RequestDetail | null>(null);
@@ -44,10 +58,6 @@ export function ReservationPage({ requestId, onNavigate }: ReservationPageProps)
     return () => { mounted = false; };
   }, [requestId]);
 
-  function handlePrint() {
-    window.print();
-  }
-
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -73,47 +83,27 @@ export function ReservationPage({ requestId, onNavigate }: ReservationPageProps)
     detail.cantidad_personas > 0
       ? Number(detail.total_estimado) / detail.cantidad_personas
       : 0;
-  const firstPhone = detail.travelers.find((t) => t.numero_celular)?.numero_celular ?? HOTEL_PHONE;
-  const checkInFormatted = (() => {
-    const d = new Date(detail.llegada_panama);
-    return `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
-  })();
-  const checkInTime = (() => {
-    const d = new Date(detail.llegada_panama);
-    let h = d.getHours(), m = d.getMinutes();
-    const ampm = h >= 12 ? 'p.m.' : 'a.m.';
-    h = h % 12 || 12;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
-  })();
-  const departureFormatted = (() => {
-    const d = new Date(detail.salida_panama);
-    return `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
-  })();
-  const departureTime = (() => {
-    const d = new Date(detail.salida_panama);
-    let h = d.getHours(), m = d.getMinutes();
-    const ampm = h >= 12 ? 'p.m.' : 'a.m.';
-    h = h % 12 || 12;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
-  })();
-  const checkoutFormatted = (() => {
-    const d = new Date(detail.salida_hotel + 'T12:00:00');
-    return `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
-  })();
+
+  const checkInDate = fmtDayMonthYear(detail.llegada_panama);
+  const checkInTime = fmtTime12(detail.llegada_panama);
+  const departureDate = fmtDayMonthYear(detail.salida_panama);
+  const departureTime = fmtTime12(detail.salida_panama);
+  const checkoutDate = fmtDayMonthYear(detail.salida_hotel + 'T12:00:00');
+
+  const emptyRows = Math.max(0, 5 - detail.travelers.length);
 
   return (
     <div className="space-y-4 pb-4">
-      {/* Acciones — ocultas al imprimir */}
+      {/* ── Barra de acciones (oculta al imprimir) ── */}
       <div className="no-print">
         <PageHeader
           title={`Reserva #${reservation.reservation_number}`}
           subtitle={reservation.verification_code}
           onBack={() => onNavigate({ page: 'request-detail', requestId })}
         />
-
         <Card className="p-4 mb-4">
           <div className="flex gap-2 flex-wrap">
-            <Button onClick={handlePrint} className="flex-1">
+            <Button onClick={() => window.print()} className="flex-1">
               <Printer className="h-4 w-4" />
               Imprimir / PDF
             </Button>
@@ -126,7 +116,6 @@ export function ReservationPage({ requestId, onNavigate }: ReservationPageProps)
               Descargar TXT
             </Button>
           </div>
-
           <div className="mt-3 p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-start gap-3">
             <QrCode className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
             <div className="min-w-0">
@@ -138,237 +127,289 @@ export function ReservationPage({ requestId, onNavigate }: ReservationPageProps)
         </Card>
       </div>
 
-      {/* ============================================================
-          DOCUMENTO DE RESERVA — visible en pantalla y al imprimir
-          ============================================================ */}
-      <div ref={printRef} id="reservation-print" className="bg-white border border-slate-200 rounded-xl overflow-hidden print:rounded-none print:border-0">
+      {/* ══════════════════════════════════════════════
+          DOCUMENTO OFICIAL — se imprime completo
+          ══════════════════════════════════════════════ */}
+      <div
+        ref={printRef}
+        id="reservation-print"
+        className="bg-white border border-slate-300 overflow-hidden text-[11px] print:border-0 print:shadow-none"
+        style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+      >
 
-        {/* Encabezado azul */}
-        <div className="bg-blue-800 text-white text-center py-6 px-4">
-          <div className="flex justify-center mb-3">
+        {/* ── CABECERA CON FONDO TIPO SKYLINE ── */}
+        <div
+          className="relative h-28 flex items-start px-3 pt-2"
+          style={{
+            background: 'linear-gradient(180deg, #0c2d5c 0%, #1a4e8a 35%, #2872c4 60%, #5ba3e0 80%, #a8d4f5 95%, #d9eef9 100%)',
+          }}
+        >
+          {/* Logo + nombre hotel */}
+          <div className="flex items-center gap-2 bg-white/10 rounded-lg px-2 py-1.5 backdrop-blur-sm">
             <img
               src="/logo_del_hotel.jpeg"
               alt="Vista al Mar"
-              className="h-16 w-16 object-contain rounded-lg border-2 border-white/30"
+              className="h-12 w-12 object-contain rounded bg-white p-0.5"
             />
+            <div className="text-white">
+              <p className="text-sm font-extrabold leading-tight tracking-wide">VISTA AL MAR</p>
+              <p className="text-xs font-light leading-tight">HOTEL &amp; BOUTIQUE</p>
+            </div>
           </div>
-          <h1 className="text-base font-bold tracking-wide uppercase">
-            Reservation {HOTEL_TITLE}
-          </h1>
-          <p className="text-blue-200 text-xs mt-1 leading-tight">
-            ON BEHALF OF HOTEL VISTA ALMAR, WE WANT TO EXPRESS OUR THANKS TO YOU FOR CHOOSING OUR SERVICES DETAILS
-          </p>
-          <p className="text-blue-300 text-xs mt-2 font-mono">{HOTEL_RUC}</p>
         </div>
 
-        {/* Tabla de información principal */}
+        {/* ── TÍTULO PRINCIPAL ── */}
+        <div className="text-center px-4 pt-3 pb-2 border-b border-slate-200">
+          <h1 className="text-sm font-extrabold text-blue-900 tracking-wide uppercase">
+            Reservation {HOTEL_TITLE}
+          </h1>
+          <p className="text-[10px] font-bold text-blue-800 mt-1 uppercase tracking-wide">
+            ON BEHALF OF HOTEL VISTA ALMAR, WE WANT TO EXPRESS OUR THANKS TO YOU FOR CHOOSING OUR SERVICES DETAILS
+          </p>
+          <p className="text-[10px] text-blue-700 font-semibold mt-1">{HOTEL_RUC}</p>
+        </div>
+
+        {/* ── TABLA DE INFORMACIÓN PRINCIPAL ── */}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-xs">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+            {/* Cabeceras de sección */}
             <thead>
-              <tr className="bg-blue-800 text-white">
-                <th colSpan={2} className="border border-blue-600 px-3 py-2 text-left font-bold text-sm">
-                  Informacion de Reservacion
+              <tr>
+                <th
+                  colSpan={2}
+                  style={{
+                    background: '#1a4e8a', color: 'white', padding: '6px 10px',
+                    textAlign: 'left', fontStyle: 'italic', fontWeight: 700,
+                    border: '1px solid #1e40af',
+                  }}
+                >
+                  informacion de Reserbacion
                 </th>
-                <th colSpan={2} className="border border-blue-600 px-3 py-2 text-center font-bold text-sm">
+                <th
+                  colSpan={3}
+                  style={{
+                    background: '#1a4e8a', color: 'white', padding: '6px 10px',
+                    textAlign: 'center', fontWeight: 700, letterSpacing: '0.1em',
+                    border: '1px solid #1e40af',
+                  }}
+                >
                   LODGING
                 </th>
               </tr>
-              <tr className="bg-blue-700 text-white">
-                <th className="border border-blue-600 px-3 py-1.5 text-left font-semibold">CAMPO</th>
-                <th className="border border-blue-600 px-3 py-1.5 text-left font-semibold">DETALLE</th>
-                <th className="border border-blue-600 px-3 py-1.5 text-center font-semibold">CHECK IN</th>
-                <th className="border border-blue-600 px-3 py-1.5 text-center font-semibold">CHECKOUT</th>
+              <tr style={{ background: '#1e4fa5', color: 'white' }}>
+                <th style={{ border: '1px solid #3b82f6', padding: '4px 8px', textAlign: 'left', fontWeight: 700 }}>FLIGHT / ARRIBAL NUMBER</th>
+                <th style={{ border: '1px solid #3b82f6', padding: '4px 8px', textAlign: 'left' }}></th>
+                <th style={{ border: '1px solid #3b82f6', padding: '4px 8px', textAlign: 'center', fontWeight: 700 }}>CHECK IN</th>
+                <th style={{ border: '1px solid #3b82f6', padding: '4px 8px', textAlign: 'center', fontWeight: 700 }}>CHECK IN</th>
+                <th style={{ border: '1px solid #3b82f6', padding: '4px 8px', textAlign: 'center', fontWeight: 700 }}>CHECKOUT</th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td className="border border-slate-200 px-3 py-2 font-semibold text-blue-800 bg-blue-50 whitespace-nowrap">
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#1e40af', background: '#eff6ff', whiteSpace: 'nowrap' }}>
                   DATE OF CHECK IN TO PANAMA
                 </td>
-                <td className="border border-slate-200 px-3 py-2 font-bold">
-                  {checkInFormatted}<br />
-                  <span className="text-slate-500">{checkInTime}</span>
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700 }}>
+                  {checkInDate}<br />
+                  <span style={{ color: '#64748b' }}>{checkInTime}</span>
                 </td>
-                <td className="border border-slate-200 px-3 py-2 text-center font-bold bg-slate-50">
-                  {checkInFormatted}
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#1e40af', background: '#eff6ff', textAlign: 'center' }}>
+                  CHECK IN
                 </td>
-                <td className="border border-slate-200 px-3 py-2 text-center font-bold bg-slate-50">
-                  {checkoutFormatted}
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, textAlign: 'center', background: '#e0f2fe' }}>
+                  {checkInDate}
+                </td>
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, textAlign: 'center', background: '#e0f2fe' }}>
+                  {checkoutDate}
                 </td>
               </tr>
               <tr>
-                <td className="border border-slate-200 px-3 py-2 font-semibold text-blue-800 bg-blue-50 whitespace-nowrap">
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#1e40af', background: '#eff6ff', whiteSpace: 'nowrap' }}>
+                  DEPARTURE FLIGHT NUMBER
+                </td>
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', color: '#94a3b8' }}>—</td>
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#1e40af', background: '#eff6ff', textAlign: 'center' }}>
+                  CHECKOUT
+                </td>
+                <td colSpan={2} style={{ border: '1px solid #cbd5e1', padding: '5px 8px', background: '#f8fafc' }}></td>
+              </tr>
+              <tr>
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#1e40af', background: '#eff6ff', whiteSpace: 'nowrap' }}>
                   DEPARTURE DATE PANAMA
                 </td>
-                <td className="border border-slate-200 px-3 py-2 font-bold">
-                  {departureFormatted}<br />
-                  <span className="text-slate-500">{departureTime}</span>
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700 }}>
+                  {departureDate}<br />
+                  <span style={{ color: '#64748b' }}>{departureTime}</span>
                 </td>
-                <td className="border border-slate-200 px-3 py-2 text-center font-semibold text-blue-800 bg-blue-50">
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#1e40af', background: '#eff6ff', textAlign: 'center' }}>
                   PHONE
                 </td>
-                <td className="border border-slate-200 px-3 py-2 text-center font-bold text-red-600">
-                  {firstPhone}
+                <td colSpan={2} style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#dc2626', textAlign: 'center' }}>
+                  {HOTEL_PHONE}
                 </td>
               </tr>
               <tr>
-                <td className="border border-slate-200 px-3 py-2 font-semibold text-blue-800 bg-blue-50 whitespace-nowrap">
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 700, color: '#1e40af', background: '#eff6ff', whiteSpace: 'nowrap' }}>
                   RESERVATION NUMBER
                 </td>
-                <td className="border border-slate-200 px-3 py-2 font-bold text-xl text-blue-800">
+                <td style={{ border: '1px solid #cbd5e1', padding: '5px 8px', fontWeight: 900, fontSize: '16px', color: '#1e40af' }}>
                   {reservation.reservation_number}
                 </td>
-                <td className="border border-slate-200 px-3 py-2 text-center font-semibold text-blue-800 bg-blue-50">
-                  NIGHTS
-                </td>
-                <td className="border border-slate-200 px-3 py-2 text-center font-bold">
-                  {detail.noches}
-                </td>
+                <td colSpan={3} style={{ border: '1px solid #cbd5e1', background: '#f8fafc' }}></td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Sección de viajeros */}
+        {/* ── TABLA DE VIAJEROS ── */}
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse text-xs">
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
             <thead>
-              <tr className="bg-blue-800 text-white">
-                <th colSpan={6} className="border border-blue-600 px-3 py-2 text-center font-bold text-sm tracking-widest">
+              <tr>
+                <th
+                  colSpan={6}
+                  style={{
+                    background: '#1a4e8a', color: 'white', padding: '6px 10px',
+                    textAlign: 'center', fontWeight: 900, letterSpacing: '0.15em',
+                    border: '1px solid #1e40af', fontSize: '12px',
+                  }}
+                >
                   INCLUDES TRANSPORTATION SERVICE
                 </th>
               </tr>
-              <tr className="bg-blue-700 text-white">
-                <th className="border border-blue-600 px-3 py-1.5 text-left font-semibold">NAME</th>
-                <th className="border border-blue-600 px-3 py-1.5 text-left font-semibold">PASSPORT</th>
-                <th className="border border-blue-600 px-3 py-1.5 text-center font-semibold">ADULT</th>
-                <th className="border border-blue-600 px-3 py-1.5 text-center font-semibold">KIDS</th>
-                <th className="border border-blue-600 px-3 py-1.5 text-left font-semibold">PHONE</th>
-                <th className="border border-blue-600 px-3 py-1.5 text-right font-semibold">PRICETOTAL</th>
+              <tr style={{ background: '#1e4fa5', color: 'white' }}>
+                <th style={{ border: '1px solid #3b82f6', padding: '5px 8px', textAlign: 'left', fontWeight: 700 }}>NAME</th>
+                <th style={{ border: '1px solid #3b82f6', padding: '5px 8px', textAlign: 'left', fontWeight: 700 }}>PASSPORT</th>
+                <th style={{ border: '1px solid #3b82f6', padding: '5px 8px', textAlign: 'center', fontWeight: 700 }}>ADULT</th>
+                <th style={{ border: '1px solid #3b82f6', padding: '5px 8px', textAlign: 'center', fontWeight: 700 }}>KIDS</th>
+                <th style={{ border: '1px solid #3b82f6', padding: '5px 8px', textAlign: 'left', fontWeight: 700 }}>PHONE</th>
+                <th style={{ border: '1px solid #3b82f6', padding: '5px 8px', textAlign: 'right', fontWeight: 700 }}>PRICETOTAL</th>
               </tr>
             </thead>
             <tbody>
               {detail.travelers.map((t) => (
                 <tr key={t.id}>
-                  <td className="border border-slate-200 px-3 py-2.5 font-bold text-slate-800 uppercase">
+                  <td style={{ border: '1px solid #e2e8f0', padding: '6px 8px', fontWeight: 700, textTransform: 'uppercase' }}>
                     {t.nombre_completo}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 font-mono text-slate-700">
+                  <td style={{ border: '1px solid #e2e8f0', padding: '6px 8px', fontFamily: 'monospace' }}>
                     {t.numero_pasaporte}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center">1</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-center text-slate-400">—</td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-red-600 font-semibold">
+                  <td style={{ border: '1px solid #e2e8f0', padding: '6px 8px', textAlign: 'center' }}>1</td>
+                  <td style={{ border: '1px solid #e2e8f0', padding: '6px 8px', textAlign: 'center', color: '#94a3b8' }}></td>
+                  <td style={{ border: '1px solid #e2e8f0', padding: '6px 8px', color: '#dc2626', fontWeight: 600 }}>
                     {t.numero_celular ?? '—'}
                   </td>
-                  <td className="border border-slate-200 px-3 py-2.5 text-right font-bold text-slate-800">
+                  <td style={{ border: '1px solid #e2e8f0', padding: '6px 8px', textAlign: 'right', fontWeight: 700 }}>
                     ${pricePerPerson.toFixed(2)}
                   </td>
                 </tr>
               ))}
-              {/* Filas vacías de relleno para diseño */}
-              {detail.travelers.length < 4 &&
-                Array.from({ length: 4 - detail.travelers.length }).map((_, i) => (
-                  <tr key={`empty-${i}`}>
-                    <td className="border border-slate-200 px-3 py-3">&nbsp;</td>
-                    <td className="border border-slate-200 px-3 py-3"></td>
-                    <td className="border border-slate-200 px-3 py-3"></td>
-                    <td className="border border-slate-200 px-3 py-3"></td>
-                    <td className="border border-slate-200 px-3 py-3"></td>
-                    <td className="border border-slate-200 px-3 py-3"></td>
-                  </tr>
-                ))}
-              {/* Fila de tipo de habitación y total */}
-              <tr className="bg-slate-50">
-                <td colSpan={2} className="border border-slate-200 px-3 py-2.5 text-center">
-                  <span className="font-bold text-slate-700 block">MATRIMONIAL / SINGLE / SUITE</span>
-                  <span className="text-blue-700 text-xs">Habitacion Standar</span>
+              {/* Filas de relleno (como en el PDF original) */}
+              {Array.from({ length: emptyRows }).map((_, i) => (
+                <tr key={`empty-${i}`}>
+                  <td style={{ border: '1px solid #e2e8f0', padding: '10px 8px' }}>&nbsp;</td>
+                  <td style={{ border: '1px solid #e2e8f0', padding: '10px 8px' }}></td>
+                  <td style={{ border: '1px solid #e2e8f0', padding: '10px 8px' }}></td>
+                  <td style={{ border: '1px solid #e2e8f0', padding: '10px 8px' }}></td>
+                  <td style={{ border: '1px solid #e2e8f0', padding: '10px 8px' }}></td>
+                  <td style={{ border: '1px solid #e2e8f0', padding: '10px 8px' }}></td>
+                </tr>
+              ))}
+              {/* Fila tipo de habitación */}
+              <tr style={{ background: '#f8fafc' }}>
+                <td colSpan={2} style={{ border: '1px solid #e2e8f0', padding: '8px', textAlign: 'center' }}>
+                  <div style={{ fontWeight: 700, color: '#1e293b' }}>MATRIMONIAL/SINGLE/SUITE</div>
+                  <div style={{ fontWeight: 900, color: '#dc2626', fontSize: '13px' }}>DOBLE</div>
                 </td>
-                <td colSpan={3} className="border border-slate-200 px-3 py-2.5 text-right font-bold text-slate-700">
-                  TOTAL
+                <td colSpan={2} style={{ border: '1px solid #e2e8f0', padding: '8px', textAlign: 'center', color: '#3b82f6' }}>
+                  Habitacion<br />Standar
                 </td>
-                <td className="border border-slate-200 px-3 py-2.5 text-right font-bold text-lg text-emerald-700">
-                  ${Number(detail.total_estimado).toFixed(2)}
-                </td>
+                <td colSpan={2} style={{ border: '1px solid #e2e8f0', padding: '8px' }}></td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        {/* Pie de página */}
-        <div className="p-4 border-t border-slate-200">
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            {/* Texto legal */}
-            <div className="flex-1 space-y-2">
-              <p className="text-xs text-slate-700 leading-relaxed">
-                <strong>ATENCIÓN:</strong> El Decreto Ejecutivo N°82 del 23 de diciembre de 2008
-                regula la actividad hotelera en Panamá.
-              </p>
-              <p className="text-xs text-slate-600">
-                <strong>Recepción / Front Desk:</strong> {HOTEL_PHONE}
-              </p>
-              <div className="mt-4 space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-600">Huésped / Guest Name:</span>
-                  <div className="flex-1 border-b border-slate-300 min-w-16"></div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-600">Dirección / Address:</span>
-                  <div className="flex-1 border-b border-slate-300 min-w-16"></div>
-                </div>
-              </div>
+        {/* ── SEPARADOR ── */}
+        <div style={{ borderTop: '2px dashed #94a3b8', margin: '4px 0' }}></div>
 
-              {/* Código de verificación */}
-              <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-2">
-                <p className="text-xs font-semibold text-blue-800">Código de Verificación:</p>
-                <p className="text-sm font-mono font-bold text-blue-700">{reservation.verification_code}</p>
-                <p className="text-xs text-blue-500 mt-0.5">Valide en: {validationUrl}</p>
-              </div>
+        {/* ── PIE DE PÁGINA ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', gap: '16px', alignItems: 'flex-start' }}>
+          {/* Texto legal y firmas */}
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: '10px', lineHeight: 1.5, marginBottom: '6px' }}>
+              <strong>ATENCIÓN:</strong> El Decreto Ejecutivo N°82 del 23 de diciembre de 2008
+              regula la actividad hotelera en Panamá.
+            </p>
+            <p style={{ fontSize: '10px', marginBottom: '4px' }}>
+              <strong>Recepción / Front Desk:</strong> [Address plalacerditor]
+            </p>
+            <div style={{ marginTop: '10px' }}>
+              <p style={{ fontSize: '10px', marginBottom: '6px' }}>
+                Huésped / Guest Name: <span style={{ display: 'inline-block', width: '120px', borderBottom: '1px solid #475569' }}>&nbsp;</span>
+              </p>
+              <p style={{ fontSize: '10px' }}>
+                Dirección / Address: &nbsp;&nbsp;<span style={{ display: 'inline-block', width: '120px', borderBottom: '1px solid #475569' }}>&nbsp;</span>
+              </p>
             </div>
-
-            {/* QR code */}
-            <div className="flex flex-col items-center gap-2 sm:w-44">
-              <img
-                src={qrImageUrl}
-                alt="QR Validación"
-                className="w-32 h-32 border border-slate-200 rounded"
-              />
-              <p className="text-xs font-semibold text-slate-600 text-center">
-                ¡Comunícate con nosotros!<br />
-                <span className="text-slate-400 text-xs">Scan para validar reserva</span>
+            {/* Código de verificación */}
+            <div style={{ marginTop: '8px', padding: '4px 8px', background: '#eff6ff', borderRadius: '4px', border: '1px solid #bfdbfe' }}>
+              <p style={{ fontSize: '9px', fontWeight: 700, color: '#1e40af' }}>
+                Código: {reservation.verification_code}
               </p>
-              <p className="text-xs font-bold text-blue-800 text-center leading-tight">
-                {HOTEL_TITLE}
+              <p style={{ fontSize: '8px', color: '#3b82f6', wordBreak: 'break-all' }}>
+                {validationUrl}
               </p>
             </div>
           </div>
 
-          {/* Líneas de firma */}
-          <div className="mt-6 flex flex-col sm:flex-row justify-between gap-8">
-            <div className="flex-1 text-center">
-              <div className="border-b border-slate-400 mb-1 mx-4"></div>
-              <p className="text-xs text-slate-600">Firma del Recepcionista</p>
-            </div>
-            <div className="flex-1 text-center">
-              <div className="border-b border-slate-400 mb-1 mx-4"></div>
-              <p className="text-xs text-slate-600">Firma del Huésped / (Guest Signature)</p>
-            </div>
-          </div>
-
-          {/* Generado por */}
-          <div className="mt-3 pt-3 border-t border-slate-100 text-center">
-            <p className="text-xs text-slate-400">
-              Emitido el {formatDateTime(reservation.approved_at)}
-              {reservation.approved_by_name ? ` por ${reservation.approved_by_name}` : ''}
-              {' · '}Estado: <span className={reservation.status === 'active' ? 'text-emerald-600 font-semibold' : 'text-red-500 font-semibold'}>
-                {reservation.status === 'active' ? 'Activa' : 'Cancelada'}
-              </span>
+          {/* QR + branding */}
+          <div style={{ textAlign: 'center', minWidth: '110px' }}>
+            <p style={{ fontSize: '9px', fontWeight: 600, marginBottom: '4px' }}>
+              ¡Comunícate con nosotros!<br />
+              <span style={{ fontSize: '8px', color: '#64748b' }}>Comentarias and queries:</span>
+            </p>
+            <img
+              src={qrImageUrl}
+              alt="QR Validación"
+              style={{ width: '80px', height: '80px', border: '1px solid #e2e8f0' }}
+            />
+            <p style={{ fontSize: '9px', fontWeight: 900, marginTop: '4px', lineHeight: 1.3, color: '#1e40af' }}>
+              HOTEL &amp; BOUTIQUE<br />VISTA AL MAR
+            </p>
+            <p style={{ fontSize: '8px', color: '#475569', marginTop: '2px' }}>
+              (Firma del Recepcionista)
             </p>
           </div>
         </div>
+
+        {/* ── LÍNEAS DE FIRMA ── */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 40px 12px', gap: '40px' }}>
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ borderBottom: '1px solid #475569', marginBottom: '4px', height: '20px' }}></div>
+            <p style={{ fontSize: '10px', color: '#475569' }}>Firma del Recepcionista</p>
+          </div>
+          <div style={{ flex: 1, textAlign: 'center' }}>
+            <div style={{ borderBottom: '1px solid #475569', marginBottom: '4px', height: '20px' }}></div>
+            <p style={{ fontSize: '10px', color: '#475569' }}>(Firma del Huésped)</p>
+          </div>
+        </div>
+
+        {/* ── ESTADO Y EMISIÓN ── */}
+        <div style={{ padding: '4px 14px 8px', textAlign: 'center', borderTop: '1px solid #e2e8f0' }}>
+          <p style={{ fontSize: '9px', color: '#94a3b8' }}>
+            Emitido el {formatDateTime(reservation.approved_at)}
+            {reservation.approved_by_name ? ` por ${reservation.approved_by_name}` : ''}
+            {' · '}Estado:{' '}
+            <span style={{ fontWeight: 700, color: reservation.status === 'active' ? '#16a34a' : '#dc2626' }}>
+              {reservation.status === 'active' ? 'ACTIVA' : 'CANCELADA'}
+            </span>
+          </p>
+        </div>
       </div>
 
-      {/* Botones inferiores — ocultos al imprimir */}
+      {/* ── Botones inferiores (no se imprimen) ── */}
       <div className="no-print flex gap-2">
         <Button
           variant="secondary"
@@ -378,7 +419,7 @@ export function ReservationPage({ requestId, onNavigate }: ReservationPageProps)
           <ArrowLeft className="h-4 w-4" />
           Ver Solicitud
         </Button>
-        <Button onClick={handlePrint} className="flex-1">
+        <Button onClick={() => window.print()} className="flex-1">
           <Download className="h-4 w-4" />
           Descargar PDF
         </Button>
