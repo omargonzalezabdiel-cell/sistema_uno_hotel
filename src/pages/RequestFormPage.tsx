@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Phone, Calendar, Users, Upload, X, CheckCircle } from 'lucide-react';
+import { User, Phone, Calendar, Users, Upload, X, CheckCircle, Clock, Globe } from 'lucide-react';
 import {
   calcularNoches,
   calcularTotal,
@@ -20,11 +20,61 @@ interface RequestFormPageProps {
   isPublic?: boolean;
 }
 
+type TZMode = 'panama' | 'cuba';
+
 const emptyTraveler = (): TravelerFormData => ({
   nombre_completo: '',
   numero_pasaporte: '',
   numero_celular: '',
 });
+
+// ────────────────────────────────────────────
+// TIMEZONE UTILITIES
+// Panama: UTC-5 always (no DST)
+// Cuba DST: second Sunday of March → last Sunday of October = UTC-4
+//           otherwise UTC-5 (same as Panama)
+// ────────────────────────────────────────────
+
+function isCubaDST(date: Date): boolean {
+  const y = date.getFullYear();
+  // Second Sunday of March
+  const mar1Day = new Date(y, 2, 1).getDay(); // 0=Sun
+  const secondSunMar = 8 + ((7 - mar1Day) % 7);
+  const dstStart = new Date(y, 2, secondSunMar);
+  // Last Sunday of October
+  const oct31Day = new Date(y, 9, 31).getDay();
+  const lastSunOct = 31 - oct31Day;
+  const dstEnd = new Date(y, 9, lastSunOct, 1);
+  return date >= dstStart && date < dstEnd;
+}
+
+/** Given a "YYYY-MM-DDTHH:MM" string (Panama time), return Cuba-time equivalent string. */
+function toCubaTime(dtLocal: string): { display: string; offset: number } {
+  if (!dtLocal) return { display: '', offset: 0 };
+  // Parse as-is (treat as local Panama time)
+  const d = new Date(dtLocal);
+  const isDST = isCubaDST(d);
+  const offsetHours = isDST ? 1 : 0; // Cuba is +1h ahead of Panama during DST
+  if (offsetHours === 0) return { display: dtLocal, offset: 0 };
+  const shifted = new Date(d.getTime() + offsetHours * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const display =
+    `${shifted.getFullYear()}-${pad(shifted.getMonth() + 1)}-${pad(shifted.getDate())}` +
+    `T${pad(shifted.getHours())}:${pad(shifted.getMinutes())}`;
+  return { display, offset: offsetHours };
+}
+
+/** Format "YYYY-MM-DDTHH:MM" for human display */
+function fmtDTLocal(dtLocal: string): string {
+  if (!dtLocal) return '';
+  const d = new Date(dtLocal);
+  const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'p.m.' : 'a.m.';
+  h = h % 12 || 12;
+  return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()} – ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+}
 
 export function RequestFormPage({ onNavigate, requestId, isPublic = false }: RequestFormPageProps) {
   const { user } = useAuth();
@@ -39,9 +89,13 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
   const [cantidadPersonas, setCantidadPersonas] = useState(1);
   const [travelers, setTravelers] = useState<TravelerFormData[]>([emptyTraveler()]);
 
+  // All times stored/entered as Panama time
   const [llegadaPanama, setLlegadaPanama] = useState('');
   const [salidaPanama, setSalidaPanama] = useState('');
   const [salidaHotel, setSalidaHotel] = useState('');
+
+  // Timezone preference (display only — stored values are always Panama time)
+  const [tzMode, setTzMode] = useState<TZMode>('panama');
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [globalError, setGlobalError] = useState('');
@@ -49,7 +103,6 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
   const [loading, setLoading] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(isEditing);
 
-  // Tooltip abierto en el formulario público
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
 
   // ────────────────────────────────────────────
@@ -115,7 +168,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
   );
 
   // ────────────────────────────────────────────
-  // VALIDACIÓN (mensajes amigables)
+  // VALIDACIÓN
   // ────────────────────────────────────────────
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -258,6 +311,46 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
     );
   };
 
+  // ────────────────────────────────────────────
+  // CONVERSIÓN DE HORA — muestra debajo del campo
+  // ────────────────────────────────────────────
+  const TimeConversion = ({ dtLocal, label }: { dtLocal: string; label: string }) => {
+    if (!dtLocal || !isPublic) return null;
+    const cuba = toCubaTime(dtLocal);
+    const isDST = cuba.offset === 1;
+    const panamaLabel = fmtDTLocal(dtLocal);
+    const cubaLabel = fmtDTLocal(cuba.display);
+
+    if (tzMode === 'panama') {
+      return (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700">
+            <Clock className="h-3 w-3" />
+            {label}: {panamaLabel} — <span className="font-bold">Hora de Panamá (UTC-5)</span>
+          </span>
+          {isDST && cubaLabel && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs text-amber-700">
+              🇨🇺 En Cuba sería: {cubaLabel} (UTC-4)
+            </span>
+          )}
+        </div>
+      );
+    }
+
+    // Cuba mode
+    return (
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-700">
+          <Clock className="h-3 w-3" />
+          {label}: {isDST ? cubaLabel : panamaLabel} — <span className="font-bold">Hora de Cuba ({isDST ? 'UTC-4' : 'UTC-5'})</span>
+        </span>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-xs text-blue-700">
+          🇵🇦 En Panamá: {panamaLabel} (UTC-5)
+        </span>
+      </div>
+    );
+  };
+
   if (loadingDetail) {
     return (
       <div className="flex justify-center py-20">
@@ -275,8 +368,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
       {/* ── CABECERA PÚBLICA — logo es el acceso oculto al sistema ── */}
       {isPublic && (
         <div className="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-10 shadow-sm">
-          <div className="max-w-lg mx-auto">
-            {/* El logo es el acceso secreto al panel — no hay botón visible */}
+          <div className="max-w-lg mx-auto flex items-center justify-between">
             <button
               type="button"
               onClick={() => onNavigate({ page: 'login' })}
@@ -287,7 +379,52 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
             >
               <Logo size={38} />
             </button>
+
+            {/* ── SELECTOR DE ZONA HORARIA ── */}
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-slate-400 flex-shrink-0" />
+              <span className="text-xs text-slate-500 font-medium hidden sm:inline">Zona horaria:</span>
+              <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setTzMode('panama')}
+                  className={`px-3 py-1.5 transition-colors ${
+                    tzMode === 'panama'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  🇵🇦 Panamá
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTzMode('cuba')}
+                  className={`px-3 py-1.5 transition-colors border-l border-slate-200 ${
+                    tzMode === 'cuba'
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  🇨🇺 Cuba
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
+      )}
+
+      {/* ── BANNER DE ZONA HORARIA ACTIVA ── */}
+      {isPublic && (
+        <div className={`px-4 py-2 text-center text-xs font-semibold ${
+          tzMode === 'cuba'
+            ? 'bg-amber-50 border-b border-amber-200 text-amber-800'
+            : 'bg-blue-50 border-b border-blue-200 text-blue-800'
+        }`}>
+          {tzMode === 'panama' ? (
+            <>🇵🇦 Mostrando horarios en <strong>Hora de Panamá (UTC-5)</strong> — Los datos se guardan en hora de Panamá.</>
+          ) : (
+            <>🇨🇺 Mostrando conversión en <strong>Hora de Cuba</strong> — Los datos se guardan en hora de Panamá.</>
+          )}
         </div>
       )}
 
@@ -299,9 +436,12 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
             <h1 className="text-2xl font-bold text-slate-800">
               Solicitud de Hospedaje
             </h1>
-            <p className="text-base text-slate-500 mt-2 leading-relaxed">
-              Complete este formulario para solicitar su reserva. El personal del hotel se
-              comunicará con usted para confirmar los detalles.
+            {/* TEXTO FORMAL ACTUALIZADO */}
+            <p className="text-base text-slate-600 mt-2 leading-relaxed">
+              Estimado huésped, le invitamos a completar el presente formulario con la información
+              requerida para gestionar su solicitud de hospedaje. Una vez recibidos sus datos,
+              nuestro equipo verificará la información proporcionada y se pondrá en contacto con
+              usted para confirmar su reserva y brindarle la atención correspondiente.
             </p>
             {/* Indicador de pasos */}
             <div className="mt-4 bg-sky-50 border border-sky-200 rounded-xl p-3">
@@ -373,7 +513,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
               />
               {helpTip(
                 'resp_pasaporte',
-                'Pulse aquí y escriba el número de su pasaporte.',
+                'Pulse aquí y escriba el número de pasaporte tal como aparece en el documento.',
                 'El número de pasaporte se encuentra en la página principal de su pasaporte, en la parte superior derecha, generalmente combinando letras y números (ej: AB1234567).',
               )}
             </div>
@@ -469,7 +609,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
               </div>
               {helpTip(
                 'cantidad_personas',
-                'Seleccione cuántas personas viajarán (incluyendo niños).',
+                'Seleccione la cantidad total de personas que viajarán.',
                 'Cuente todas las personas del grupo: adultos y niños. El costo se calcula multiplicando la cantidad de personas por las noches de estadía.',
               )}
             </div>
@@ -505,7 +645,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                     />
                     {helpTip(
                       `t_nombre_${i}`,
-                      'Escriba el nombre exactamente como aparece en el pasaporte.',
+                      'Pulse aquí y escriba exactamente el nombre que aparece en su pasaporte.',
                       'Incluya todos los nombres y apellidos tal como aparecen en la página principal del pasaporte.',
                     )}
                   </div>
@@ -522,7 +662,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                     />
                     {helpTip(
                       `t_pasaporte_${i}`,
-                      'Escriba el número de pasaporte de esta persona.',
+                      'Pulse aquí y escriba el número de pasaporte tal como aparece en el documento.',
                       'Busque el número en la página con la foto, en la parte superior derecha. Incluye letras y números (ej: L676591).',
                     )}
                   </div>
@@ -564,6 +704,38 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
               </div>
             )}
 
+            {/* Selector de zona horaria inline (recordatorio) */}
+            {isPublic && (
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <Globe className="h-4 w-4 text-slate-500 flex-shrink-0" />
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-slate-600 mb-1">
+                    Ingrese las horas según su boleto aéreo:
+                  </p>
+                  <div className="flex rounded-lg border border-slate-200 overflow-hidden text-xs font-semibold w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setTzMode('panama')}
+                      className={`px-3 py-1.5 transition-colors ${
+                        tzMode === 'panama' ? 'bg-blue-600 text-white' : 'bg-white text-slate-600'
+                      }`}
+                    >
+                      🇵🇦 Hora Panamá (UTC-5)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTzMode('cuba')}
+                      className={`px-3 py-1.5 border-l border-slate-200 transition-colors ${
+                        tzMode === 'cuba' ? 'bg-amber-500 text-white' : 'bg-white text-slate-600'
+                      }`}
+                    >
+                      🇨🇺 Hora Cuba
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Llegada */}
             <div>
               <Input
@@ -575,9 +747,10 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                 onChange={(e) => { setLlegadaPanama(e.target.value); setErrors((p) => ({ ...p, llegadaPanama: '' })); }}
                 error={errors.llegadaPanama}
               />
+              <TimeConversion dtLocal={llegadaPanama} label="Llegada" />
               {helpTip(
                 'llegada_panama',
-                'Seleccione la fecha y hora que aparece en su boleto aéreo de llegada a Panamá.',
+                'Seleccione la fecha y hora indicadas en su boleto aéreo.',
                 'Esta es la fecha y hora de llegada de su vuelo a la Ciudad de Panamá. Se encuentra en su tiquete aéreo en la sección "Arrival" o "Llegada".',
               )}
             </div>
@@ -593,9 +766,10 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                 onChange={(e) => { setSalidaPanama(e.target.value); setErrors((p) => ({ ...p, salidaPanama: '' })); }}
                 error={errors.salidaPanama}
               />
+              <TimeConversion dtLocal={salidaPanama} label="Salida" />
               {helpTip(
                 'salida_panama',
-                'Seleccione la fecha y hora de regreso indicada en su boleto aéreo.',
+                'Seleccione la fecha y hora de regreso indicadas en su boleto aéreo.',
                 'Esta es la fecha y hora de su vuelo de regreso desde Panamá. Se encuentra en su tiquete en la sección "Departure" o "Salida".',
               )}
             </div>
@@ -604,7 +778,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
             <div>
               <Input
                 id="salida_hotel"
-                label="Salida del Hotel"
+                label="Salida del Hotel (Check-out)"
                 type="date"
                 required
                 value={salidaHotel}
