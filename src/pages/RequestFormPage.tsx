@@ -82,8 +82,8 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
       setRespCorreo(data.responsable_correo ?? '');
       setExistingFotoUrl(data.responsable_pasaporte_foto);
       setCantidadPersonas(data.cantidad_personas);
-      setLlegadaPanama(data.llegada_panama.slice(0, 16));
-      setSalidaPanama(data.salida_panama.slice(0, 16));
+      setLlegadaPanama(data.llegada_panama.slice(0, 10));
+      setSalidaPanama(data.salida_panama.slice(0, 10));
       setSalidaHotel(data.salida_hotel);
       setTravelers(
         data.travelers.map((t) => ({
@@ -141,9 +141,9 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
     if (!respPasaporte.trim())
       e.respPasaporte = 'Por favor escriba el número de pasaporte antes de continuar.';
     if (!llegadaPanama)
-      e.llegadaPanama = 'Por favor seleccione la fecha y hora de llegada a Panamá.';
+      e.llegadaPanama = 'Por favor seleccione la fecha de llegada a Panamá.';
     if (!salidaPanama)
-      e.salidaPanama = 'Por favor seleccione la fecha y hora de salida de Panamá.';
+      e.salidaPanama = 'Por favor seleccione la fecha de salida de Panamá.';
     if (!salidaHotel)
       e.salidaHotel = 'Por favor seleccione la fecha de salida del hotel.';
 
@@ -202,8 +202,8 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
       responsable_correo: respCorreo.trim() || null,
       responsable_pasaporte_foto: fotoUrl,
       cantidad_personas: cantidadPersonas,
-      llegada_panama: new Date(llegadaPanama).toISOString(),
-      salida_panama: new Date(salidaPanama).toISOString(),
+      llegada_panama: new Date(llegadaPanama + 'T12:00:00').toISOString(),
+      salida_panama: new Date(salidaPanama + 'T12:00:00').toISOString(),
       salida_hotel: salidaHotel,
       noches,
       total_estimado: totalEstimado,
@@ -693,7 +693,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
               <Input
                 id="llegada_panama"
                 label="Llegada a Panamá"
-                type="datetime-local"
+                type="date"
                 required
                 value={llegadaPanama}
                 onChange={(e) => { setLlegadaPanama(e.target.value); setErrors((p) => ({ ...p, llegadaPanama: '' })); }}
@@ -702,8 +702,8 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
               />
               {helpTip(
                 'llegada_panama',
-                'Seleccione la fecha y hora indicadas en su boleto aéreo.',
-                'Esta es la fecha y hora de llegada de su vuelo a la Ciudad de Panamá. Se encuentra en su tiquete aéreo en la sección "Arrival" o "Llegada".',
+                'Seleccione la fecha de llegada indicada en su boleto aéreo.',
+                'Esta es la fecha de llegada de su vuelo a la Ciudad de Panamá. Se encuentra en su tiquete aéreo en la sección "Arrival" o "Llegada".',
               )}
             </div>
 
@@ -712,7 +712,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
               <Input
                 id="salida_panama"
                 label="Salida de Panamá"
-                type="datetime-local"
+                type="date"
                 required
                 value={salidaPanama}
                 onChange={(e) => { setSalidaPanama(e.target.value); setErrors((p) => ({ ...p, salidaPanama: '' })); }}
@@ -721,8 +721,8 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
               />
               {helpTip(
                 'salida_panama',
-                'Seleccione la fecha y hora de regreso indicadas en su boleto aéreo.',
-                'Esta es la fecha y hora de su vuelo de regreso desde Panamá. Se encuentra en su tiquete en la sección "Departure" o "Salida".',
+                'Seleccione la fecha de regreso indicada en su boleto aéreo.',
+                'Esta es la fecha de su vuelo de regreso desde Panamá. Se encuentra en su tiquete en la sección "Departure" o "Salida".',
               )}
             </div>
 
