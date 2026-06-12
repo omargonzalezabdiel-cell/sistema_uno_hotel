@@ -302,7 +302,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
           <span className="inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-sky-400 text-xs font-bold text-sky-600 leading-none">
             ?
           </span>
-          <span className="font-medium">Toque aquí para más información</span>
+          <span className="font-medium"> </span>
         </button>
         {activeTooltip === field && (
           <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 text-sm text-slate-700 leading-relaxed shadow-sm">
@@ -336,9 +336,9 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
           className="flex items-center gap-1.5 text-xs text-sky-600 hover:text-sky-800 transition-colors"
         >
           <span className="inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-sky-400 text-xs font-bold text-sky-600 leading-none">
-            ?
+            
           </span>
-          <span className="font-medium">Toque aquí para más información</span>
+          <span className="font-medium"></span>
         </button>
         {activeTooltip === field && (
           <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 text-sm text-slate-700 leading-relaxed shadow-sm">
@@ -372,9 +372,9 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
           className="flex items-center gap-1.5 text-xs text-sky-600 hover:text-sky-800 transition-colors"
         >
           <span className="inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-sky-400 text-xs font-bold text-sky-600 leading-none">
-            ?
+            
           </span>
-          <span className="font-medium">Toque aquí para más información</span>
+          <span className="font-medium"></span>
         </button>
         {activeTooltip === field && (
           <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 text-sm text-slate-700 leading-relaxed shadow-sm">
