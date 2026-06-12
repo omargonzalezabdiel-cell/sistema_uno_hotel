@@ -1,19 +1,13 @@
 /**
- * Tipos TypeScript para el sistema de gestión de solicitudes de hospedaje
- * Hotel Vista al Mar
- *
- * Este archivo define todas las interfaces y tipos utilizados en la aplicación.
- * Cualquier cambio en la estructura de la base de datos debe reflejarse aquí.
+ * Tipos TypeScript para el sistema Hotel Vista al Mar
  */
 
 // ============================================================
 // USUARIOS
 // ============================================================
 
-/** Roles disponibles en el sistema */
-export type UserRole = 'creador' | 'super_admin' | 'usuario_normal';
+export type UserRole = 'creador' | 'super_admin' | 'usuario_normal' | 'recepcionista' | 'limpieza' | 'cocinera' | 'supervisor';
 
-/** Usuario del sistema (sin contraseña) */
 export interface User {
   id: string;
   username: string;
@@ -21,9 +15,26 @@ export interface User {
   created_at: string;
 }
 
-/** Sesión almacenada en localStorage */
 export interface Session {
   user: User;
+  loginAt: string;
+}
+
+// ============================================================
+// CLIENTES
+// ============================================================
+
+export interface Client {
+  id: string;
+  full_name: string;
+  passport: string;
+  room_number: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export interface ClientSession {
+  client: Client;
   loginAt: string;
 }
 
@@ -31,7 +42,6 @@ export interface Session {
 // SOLICITUDES
 // ============================================================
 
-/** Solicitud de hospedaje */
 export interface Request {
   id: string;
   responsable_nombre: string;
@@ -48,7 +58,6 @@ export interface Request {
   created_at: string;
 }
 
-/** Solicitud con datos del usuario creador (JOIN) */
 export interface RequestWithCreator extends Request {
   creator?: User | null;
 }
@@ -57,7 +66,6 @@ export interface RequestWithCreator extends Request {
 // VIAJEROS
 // ============================================================
 
-/** Viajero individual del grupo */
 export interface Traveler {
   id: string;
   request_id: string;
@@ -67,7 +75,6 @@ export interface Traveler {
   created_at: string;
 }
 
-/** Solicitud completa con lista de viajeros */
 export interface RequestDetail extends RequestWithCreator {
   travelers: Traveler[];
 }
@@ -76,14 +83,12 @@ export interface RequestDetail extends RequestWithCreator {
 // FORMULARIOS
 // ============================================================
 
-/** Datos de un viajero en el formulario (antes de guardar) */
 export interface TravelerFormData {
   nombre_completo: string;
   numero_pasaporte: string;
   numero_celular: string;
 }
 
-/** Datos completos del formulario de solicitud */
 export interface RequestFormData {
   responsable_nombre: string;
   responsable_pasaporte: string;
@@ -100,7 +105,6 @@ export interface RequestFormData {
 // RESERVAS
 // ============================================================
 
-/** Reserva oficial generada a partir de una solicitud */
 export interface Reservation {
   id: string;
   request_id: string;
@@ -115,10 +119,91 @@ export interface Reservation {
 }
 
 // ============================================================
-// ESTADÍSTICAS DEL DASHBOARD
+// HABITACIONES
 // ============================================================
 
-/** Estadísticas para el panel principal */
+export type RoomStatus = 'libre' | 'ocupada' | 'ocupada_por_horas' | 'pendiente_limpieza' | 'limpieza_urgente' | 'fuera_de_servicio';
+
+export interface Room {
+  id: string;
+  room_number: string;
+  status: RoomStatus;
+  guest_name: string | null;
+  notes: string | null;
+  updated_by: string | null;
+  updated_at: string;
+  created_at: string;
+}
+
+// ============================================================
+// COCINA
+// ============================================================
+
+export type MenuCategory = 'desayuno' | 'cena' | 'bebida' | 'postre' | 'plato';
+export type OrderStatus = 'pendiente' | 'preparando' | 'listo' | 'entregado';
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  category: MenuCategory;
+  active: boolean;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface OrderItem {
+  id: string;
+  name: string;
+  quantity: number;
+  price: number;
+}
+
+export interface FoodOrder {
+  id: string;
+  room_number: string;
+  client_name: string;
+  items: OrderItem[];
+  status: OrderStatus;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// MENSAJES
+// ============================================================
+
+export interface Message {
+  id: string;
+  from_role: string;
+  from_name: string;
+  to_role: string | null;
+  to_name: string | null;
+  content: string;
+  read: boolean;
+  created_at: string;
+}
+
+// ============================================================
+// ANUNCIOS
+// ============================================================
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  created_by: string | null;
+  created_by_name: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+// ============================================================
+// ESTADÍSTICAS
+// ============================================================
+
 export interface DashboardStats {
   total_requests: number;
   total_travelers: number;
@@ -130,7 +215,6 @@ export interface DashboardStats {
 // NAVEGACIÓN
 // ============================================================
 
-/** Páginas disponibles en la app (enrutamiento por estado) */
 export type PageName =
   | 'home'
   | 'login'
@@ -141,9 +225,15 @@ export type PageName =
   | 'search'
   | 'users'
   | 'reservation-detail'
-  | 'validate-reservation';
+  | 'validate-reservation'
+  | 'rooms'
+  | 'kitchen'
+  | 'cleaning'
+  | 'messages'
+  | 'announcements'
+  | 'client-login'
+  | 'client-dashboard';
 
-/** Estado del enrutador */
 export interface RouterState {
   page: PageName;
   requestId?: string;

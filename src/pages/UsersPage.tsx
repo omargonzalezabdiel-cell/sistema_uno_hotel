@@ -14,7 +14,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { UserPlus, Trash2, KeyRound, Users, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { canManageUsers, getRoleLabel } from '../lib/auth';
+import { canManageUsers, getRoleLabel, CREATABLE_ROLES } from '../lib/auth';
 import { useAuth } from '../context/AuthContext';
 import { Card, PageHeader, Button, Input, Select, RoleBadge, ErrorMessage, SuccessMessage, EmptyState } from '../components/UI';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -224,9 +224,9 @@ export function UsersPage({ onNavigate }: UsersPageProps) {
               value={newRole}
               onChange={(e) => setNewRole(e.target.value as UserRole)}
             >
-              <option value="usuario_normal">Usuario Normal</option>
-              <option value="super_admin">Super Administrador</option>
-              <option value="creador">Creador del Sistema</option>
+              {CREATABLE_ROLES.map(r => (
+                <option key={r} value={r}>{getRoleLabel(r)}</option>
+              ))}
             </Select>
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="flex-1">

@@ -11,32 +11,59 @@ import { ReservationPage } from './pages/ReservationPage';
 import { SearchPage } from './pages/SearchPage';
 import { UsersPage } from './pages/UsersPage';
 import { ValidationPage } from './pages/ValidationPage';
-import type { RouterState } from './types';
+import { KitchenPage } from './pages/KitchenPage';
+import { CleaningPage } from './pages/CleaningPage';
+import { RoomsPage } from './pages/RoomsPage';
+import { MessagesPage } from './pages/MessagesPage';
+import { AnnouncementsPage } from './pages/AnnouncementsPage';
+import { ClientLoginPage } from './pages/ClientLoginPage';
+import { ClientDashboardPage } from './pages/ClientDashboardPage';
+import { getClientSession } from './lib/clients';
+import type { Client, RouterState } from './types';
 
 function AppContent() {
   const { user, loading } = useAuth();
 
   const [router, setRouter] = useState<RouterState>(() => {
-    // Verificar si la URL tiene ?validar=CODE (llegada por QR)
     const params = new URLSearchParams(window.location.search);
     const validar = params.get('validar');
     if (validar) return { page: 'validate-reservation', reservationCode: validar };
+    if (params.has('cliente')) return { page: 'client-login' };
     return { page: 'home' };
   });
+
+  const [clientUser, setClientUser] = useState<Client | null>(() => getClientSession());
 
   function navigate(state: RouterState) {
     setRouter(state);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // Página pública de validación por QR — no requiere sesión
+  // QR validation — public, no auth
   if (router.page === 'validate-reservation') {
     return <ValidationPage code={router.reservationCode ?? ''} />;
   }
 
-  if (loading) {
-    return <FullPageLoader />;
+  // Client portal
+  if (router.page === 'client-login' || router.page === 'client-dashboard') {
+    if (clientUser) {
+      return (
+        <ClientDashboardPage
+          client={clientUser}
+          onLogout={() => { setClientUser(null); navigate({ page: 'client-login' }); }}
+          onNavigate={navigate}
+        />
+      );
+    }
+    return (
+      <ClientLoginPage
+        onLoginSuccess={(c) => { setClientUser(c); navigate({ page: 'client-dashboard' }); }}
+        onNavigate={navigate}
+      />
+    );
   }
+
+  if (loading) return <FullPageLoader />;
 
   if (router.page === 'home') {
     return <RequestFormPage onNavigate={navigate} isPublic />;
@@ -46,10 +73,35 @@ function AppContent() {
     return <LoginPage onNavigate={navigate} />;
   }
 
+  // Cocinera → specialized full-screen panel (no Layout)
+  if (user.role === 'cocinera' && router.page !== 'messages') {
+    return <KitchenPage onNavigate={navigate} />;
+  }
+
+  // Limpieza → specialized full-screen panel (no Layout)
+  if (user.role === 'limpieza' && router.page !== 'messages') {
+    return <CleaningPage onNavigate={navigate} />;
+  }
+
   function renderPage() {
     switch (router.page) {
       case 'dashboard':
         return <DashboardPage onNavigate={navigate} />;
+
+      case 'rooms':
+        return <RoomsPage onNavigate={navigate} />;
+
+      case 'kitchen':
+        return <KitchenPage onNavigate={navigate} />;
+
+      case 'cleaning':
+        return <CleaningPage onNavigate={navigate} />;
+
+      case 'messages':
+        return <MessagesPage onNavigate={navigate} />;
+
+      case 'announcements':
+        return <AnnouncementsPage onNavigate={navigate} />;
 
       case 'requests-list':
         return <RequestsListPage onNavigate={navigate} />;

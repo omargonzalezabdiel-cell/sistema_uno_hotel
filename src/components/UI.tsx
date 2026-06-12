@@ -1,29 +1,24 @@
-/**
- * Componentes UI reutilizables
- *
- * Pequeños building blocks usados en toda la aplicación:
- * - Badge: etiqueta de rol coloreada
- * - Card: contenedor con sombra
- * - EmptyState: pantalla vacía con icono
- * - ErrorMessage: mensaje de error en rojo
- */
 import type { ReactNode } from 'react';
 import type { UserRole } from '../types';
 
-// ============================================================
-// BADGE DE ROL
-// ============================================================
-
 const roleColors: Record<UserRole, string> = {
-  creador: 'bg-purple-100 text-purple-700',
+  creador: 'bg-violet-100 text-violet-700',
   super_admin: 'bg-sky-100 text-sky-700',
   usuario_normal: 'bg-slate-100 text-slate-600',
+  recepcionista: 'bg-teal-100 text-teal-700',
+  limpieza: 'bg-amber-100 text-amber-700',
+  cocinera: 'bg-orange-100 text-orange-700',
+  supervisor: 'bg-blue-100 text-blue-700',
 };
 
 const roleLabels: Record<UserRole, string> = {
   creador: 'Creador',
   super_admin: 'Super Admin',
   usuario_normal: 'Usuario',
+  recepcionista: 'Recepción',
+  limpieza: 'Limpieza',
+  cocinera: 'Cocinera',
+  supervisor: 'Supervisor',
 };
 
 export function RoleBadge({ role }: { role: UserRole }) {
@@ -34,10 +29,6 @@ export function RoleBadge({ role }: { role: UserRole }) {
   );
 }
 
-// ============================================================
-// CARD
-// ============================================================
-
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <div className={`bg-white rounded-2xl shadow-sm border border-slate-100 ${className}`}>
@@ -45,10 +36,6 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
     </div>
   );
 }
-
-// ============================================================
-// STAT CARD (para el dashboard)
-// ============================================================
 
 interface StatCardProps {
   label: string;
@@ -78,10 +65,6 @@ export function StatCard({ label, value, icon, color = 'sky' }: StatCardProps) {
   );
 }
 
-// ============================================================
-// EMPTY STATE
-// ============================================================
-
 export function EmptyState({ icon, title, description }: {
   icon: ReactNode;
   title: string;
@@ -96,10 +79,6 @@ export function EmptyState({ icon, title, description }: {
   );
 }
 
-// ============================================================
-// ERROR MESSAGE
-// ============================================================
-
 export function ErrorMessage({ message }: { message: string }) {
   if (!message) return null;
   return (
@@ -109,10 +88,6 @@ export function ErrorMessage({ message }: { message: string }) {
   );
 }
 
-// ============================================================
-// SUCCESS MESSAGE
-// ============================================================
-
 export function SuccessMessage({ message }: { message: string }) {
   if (!message) return null;
   return (
@@ -121,10 +96,6 @@ export function SuccessMessage({ message }: { message: string }) {
     </div>
   );
 }
-
-// ============================================================
-// BOTÓN PRIMARIO
-// ============================================================
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
@@ -156,10 +127,6 @@ export function Button({ loading, variant = 'primary', children, className = '',
   );
 }
 
-// ============================================================
-// INPUT
-// ============================================================
-
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
@@ -184,10 +151,6 @@ export function Input({ label, error, required, id, className = '', ...props }: 
     </div>
   );
 }
-
-// ============================================================
-// SELECT
-// ============================================================
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
@@ -216,10 +179,6 @@ export function Select({ label, error, required, id, className = '', children, .
   );
 }
 
-// ============================================================
-// SECTION TITLE
-// ============================================================
-
 export function SectionTitle({ children, subtitle }: { children: ReactNode; subtitle?: string }) {
   return (
     <div className="mb-4">
@@ -228,10 +187,6 @@ export function SectionTitle({ children, subtitle }: { children: ReactNode; subt
     </div>
   );
 }
-
-// ============================================================
-// PAGE HEADER
-// ============================================================
 
 export function PageHeader({
   title,
