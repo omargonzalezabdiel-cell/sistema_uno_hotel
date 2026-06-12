@@ -404,7 +404,15 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
       {isPublic && (
         <div className="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-10 shadow-sm">
           <div className="max-w-lg mx-auto flex items-center justify-center">
-            <Logo size={38} />
+            <button
+              type="button"
+              onClick={() => onNavigate({ page: 'login' })}
+              className="bg-transparent border-0 p-0 focus:outline-none hover:opacity-80 transition-opacity"
+              aria-label="Acceso al personal"
+              title="Acceso al personal"
+            >
+              <Logo size={38} />
+            </button>
           </div>
         </div>
       )}
