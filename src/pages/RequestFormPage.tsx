@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { User, Phone, Calendar, Users, Upload, X, CheckCircle, Clock, Globe } from 'lucide-react';
 import {
   calcularNoches,
@@ -104,6 +104,22 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
   const [loadingDetail, setLoadingDetail] = useState(isEditing);
 
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+
+  // ────────────────────────────────────────────
+  // REFERENCIAS A CAMPOS INPUT PARA FOCUSEO AUTOMÁTICO
+  // ────────────────────────────────────────────
+  const respNombreRef = useRef<HTMLInputElement>(null);
+  const respPasaporteRef = useRef<HTMLInputElement>(null);
+  const respCorreoRef = useRef<HTMLInputElement>(null);
+  const respFotoRef = useRef<HTMLInputElement>(null);
+  const llegadaPanamaRef = useRef<HTMLInputElement>(null);
+  const salidaPanamaRef = useRef<HTMLInputElement>(null);
+  const salidaHotelRef = useRef<HTMLInputElement>(null);
+  const travelerRefs = useRef<Array<{
+    nombre: HTMLInputElement | null;
+    pasaporte: HTMLInputElement | null;
+    celular: HTMLInputElement | null;
+  }>>([]);
 
   // ────────────────────────────────────────────
   // CARGA DE DATOS PARA EDICIÓN
@@ -281,16 +297,128 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
   }
 
   // ────────────────────────────────────────────
-  // ASISTENTE VISUAL — solo en modo público
+  // ASISTENTE VISUAL — solo en modo público con acción interactiva
   // ────────────────────────────────────────────
+  const focusField = (field: string) => {
+    // Mapear campo a su referencia
+    if (field === 'resp_nombre') {
+      respNombreRef.current?.focus();
+    } else if (field === 'resp_pasaporte') {
+      respPasaporteRef.current?.focus();
+    } else if (field === 'resp_correo') {
+      respCorreoRef.current?.focus();
+    } else if (field === 'resp_foto') {
+      respFotoRef.current?.click();
+    } else if (field === 'cantidad_personas') {
+      // Scroll a la sección de cantidad
+      document.getElementById('cantidad_personas_section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else if (field === 'llegada_panama') {
+      llegadaPanamaRef.current?.focus();
+      llegadaPanamaRef.current?.showPicker?.();
+    } else if (field === 'salida_panama') {
+      salidaPanamaRef.current?.focus();
+      salidaPanamaRef.current?.showPicker?.();
+    } else if (field === 'salida_hotel') {
+      salidaHotelRef.current?.focus();
+      salidaHotelRef.current?.showPicker?.();
+    } else if (field.startsWith('t_nombre_')) {
+      const index = parseInt(field.replace('t_nombre_', ''), 10);
+      travelerRefs.current[index]?.nombre?.focus();
+    } else if (field.startsWith('t_pasaporte_')) {
+      const index = parseInt(field.replace('t_pasaporte_', ''), 10);
+      travelerRefs.current[index]?.pasaporte?.focus();
+    } else if (field.startsWith('t_celular_')) {
+      const index = parseInt(field.replace('t_celular_', ''), 10);
+      travelerRefs.current[index]?.celular?.focus();
+    }
+    // También abrir tooltip
+    setActiveTooltip((prev) => (prev === field ? null : field));
+  };
+
   const helpTip = (field: string, hint: string, tooltip: string) => {
     if (!isPublic) return null;
     return (
       <div className="mt-2 space-y-1.5">
-        <p className="text-sm text-red-600 font-medium flex items-start gap-1.5 leading-snug">
+        <button
+          type="button"
+          onClick={() => focusField(field)}
+          className="w-full text-left text-sm text-red-600 font-medium flex items-start gap-1.5 leading-snug hover:text-red-700 transition-colors"
+        >
           <span aria-hidden="true">🔴</span>
-          <span>{hint}</span>
-        </p>
+          <span className="underline decoration-dotted underline-offset-2">{hint}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTooltip((prev) => (prev === field ? null : field))}
+          className="flex items-center gap-1.5 text-xs text-sky-600 hover:text-sky-800 transition-colors"
+        >
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-sky-400 text-xs font-bold text-sky-600 leading-none">
+            ?
+          </span>
+          <span className="font-medium">Toque aquí para más información</span>
+        </button>
+        {activeTooltip === field && (
+          <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 text-sm text-slate-700 leading-relaxed shadow-sm">
+            <span className="mr-1">ℹ️</span>
+            {tooltip}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Función específica para la foto del pasaporte
+  const helpTipPhoto = (field: string, hint: string, tooltip: string) => {
+    if (!isPublic) return null;
+    return (
+      <div className="mt-2 space-y-1.5">
+        <button
+          type="button"
+          onClick={() => {
+            respFotoRef.current?.click();
+            setActiveTooltip((prev) => (prev === field ? null : field));
+          }}
+          className="w-full text-left text-sm text-red-600 font-medium flex items-start gap-1.5 leading-snug hover:text-red-700 transition-colors"
+        >
+          <span aria-hidden="true">🔴</span>
+          <span className="underline decoration-dotted underline-offset-2">{hint}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTooltip((prev) => (prev === field ? null : field))}
+          className="flex items-center gap-1.5 text-xs text-sky-600 hover:text-sky-800 transition-colors"
+        >
+          <span className="inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-sky-400 text-xs font-bold text-sky-600 leading-none">
+            ?
+          </span>
+          <span className="font-medium">Toque aquí para más información</span>
+        </button>
+        {activeTooltip === field && (
+          <div className="bg-sky-50 border border-sky-200 rounded-xl p-3 text-sm text-slate-700 leading-relaxed shadow-sm">
+            <span className="mr-1">ℹ️</span>
+            {tooltip}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Función para cantidad de personas
+  const helpTipCantidad = (field: string, hint: string, tooltip: string) => {
+    if (!isPublic) return null;
+    return (
+      <div className="mt-2 space-y-1.5">
+        <button
+          type="button"
+          onClick={() => {
+            document.getElementById('cantidad_personas_section')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            setActiveTooltip((prev) => (prev === field ? null : field));
+          }}
+          className="w-full text-left text-sm text-red-600 font-medium flex items-start gap-1.5 leading-snug hover:text-red-700 transition-colors"
+        >
+          <span aria-hidden="true">🔴</span>
+          <span className="underline decoration-dotted underline-offset-2">{hint}</span>
+        </button>
         <button
           type="button"
           onClick={() => setActiveTooltip((prev) => (prev === field ? null : field))}
@@ -438,16 +566,13 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
             </h1>
             {/* TEXTO FORMAL ACTUALIZADO */}
             <p className="text-base text-slate-600 mt-2 leading-relaxed">
-              Estimado huésped, le invitamos a completar el presente formulario con la información
-              requerida para gestionar su solicitud de hospedaje. Una vez recibidos sus datos,
-              nuestro equipo verificará la información proporcionada y se pondrá en contacto con
-              usted para confirmar su reserva y brindarle la atención correspondiente.
+              Estimado huésped, le invitamos a completar el presente formulario con la información requerida para gestionar su solicitud de hospedaje; una vez recibidos sus datos, nuestro equipo verificará la información proporcionada y se pondrá en contacto con usted para confirmar su reserva y brindarle la atención correspondiente.
             </p>
             {/* Indicador de pasos */}
             <div className="mt-4 bg-sky-50 border border-sky-200 rounded-xl p-3">
               <p className="text-sm font-semibold text-sky-800 mb-1">📋 ¿Cómo funciona?</p>
               <ol className="text-sm text-sky-700 space-y-0.5 list-decimal list-inside">
-                <li>Complete todos los campos del formulario.</li>
+                <li>Complete todos los campos del formulario presionando el boton rojo.</li>
                 <li>Pulse el botón verde al final.</li>
                 <li>Le contactaremos para confirmar su reserva.</li>
               </ol>
@@ -492,6 +617,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                 value={respNombre}
                 onChange={(e) => { setRespNombre(e.target.value); setErrors((p) => ({ ...p, respNombre: '' })); }}
                 error={errors.respNombre}
+                inputRef={respNombreRef}
               />
               {helpTip(
                 'resp_nombre',
@@ -510,6 +636,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                 value={respPasaporte}
                 onChange={(e) => { setRespPasaporte(e.target.value); setErrors((p) => ({ ...p, respPasaporte: '' })); }}
                 error={errors.respPasaporte}
+                inputRef={respPasaporteRef}
               />
               {helpTip(
                 'resp_pasaporte',
@@ -527,6 +654,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                 placeholder="correo@ejemplo.com (opcional)"
                 value={respCorreo}
                 onChange={(e) => setRespCorreo(e.target.value)}
+                inputRef={respCorreoRef}
               />
               {helpTip(
                 'resp_correo',
@@ -560,14 +688,14 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                 ) : (
                   <label className="cursor-pointer text-sm text-sky-600 hover:text-sky-800">
                     {isPublic ? '📷 Toque para adjuntar foto del pasaporte' : 'Toca para seleccionar imagen'}
-                    <input type="file" accept="image/*" className="hidden" onChange={(e) => setRespFoto(e.target.files?.[0] ?? null)} />
+                    <input ref={respFotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => setRespFoto(e.target.files?.[0] ?? null)} />
                   </label>
                 )}
               </div>
-              {isPublic && (
-                <p className="text-xs text-slate-400 mt-1">
-                  Una foto clara de la página principal de su pasaporte ayuda a agilizar su registro.
-                </p>
+              {isPublic && helpTipPhoto(
+                'resp_foto',
+                'Toque aquí para adjuntar foto del pasaporte.',
+                'Una foto clara de la página principal de su pasaporte ayuda a agilizar su registro.',
               )}
             </div>
           </Card>
@@ -582,7 +710,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
             </SectionTitle>
 
             {/* Selector de cantidad */}
-            <div className="flex flex-col gap-1">
+            <div id="cantidad_personas_section" className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
                 Cantidad de Personas <span className="text-red-500">*</span>
               </label>
@@ -607,7 +735,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                   +
                 </button>
               </div>
-              {helpTip(
+              {helpTipCantidad(
                 'cantidad_personas',
                 'Seleccione la cantidad total de personas que viajarán.',
                 'Cuente todas las personas del grupo: adultos y niños. El costo se calcula multiplicando la cantidad de personas por las noches de estadía.',
@@ -642,6 +770,10 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                       value={t.nombre_completo}
                       onChange={(e) => updateTraveler(i, 'nombre_completo', e.target.value)}
                       error={errors[`traveler_${i}_nombre_completo`]}
+                      inputRef={(el) => {
+                        if (!travelerRefs.current[i]) travelerRefs.current[i] = { nombre: null, pasaporte: null, celular: null };
+                        travelerRefs.current[i].nombre = el;
+                      }}
                     />
                     {helpTip(
                       `t_nombre_${i}`,
@@ -659,6 +791,10 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                       value={t.numero_pasaporte}
                       onChange={(e) => updateTraveler(i, 'numero_pasaporte', e.target.value)}
                       error={errors[`traveler_${i}_numero_pasaporte`]}
+                      inputRef={(el) => {
+                        if (!travelerRefs.current[i]) travelerRefs.current[i] = { nombre: null, pasaporte: null, celular: null };
+                        travelerRefs.current[i].pasaporte = el;
+                      }}
                     />
                     {helpTip(
                       `t_pasaporte_${i}`,
@@ -675,6 +811,10 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                       placeholder="+53 5 1234567  /  +507 6123456"
                       value={t.numero_celular}
                       onChange={(e) => updateTraveler(i, 'numero_celular', e.target.value)}
+                      inputRef={(el) => {
+                        if (!travelerRefs.current[i]) travelerRefs.current[i] = { nombre: null, pasaporte: null, celular: null };
+                        travelerRefs.current[i].celular = el;
+                      }}
                     />
                     {helpTip(
                       `t_celular_${i}`,
@@ -746,6 +886,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                 value={llegadaPanama}
                 onChange={(e) => { setLlegadaPanama(e.target.value); setErrors((p) => ({ ...p, llegadaPanama: '' })); }}
                 error={errors.llegadaPanama}
+                inputRef={llegadaPanamaRef}
               />
               <TimeConversion dtLocal={llegadaPanama} label="Llegada" />
               {helpTip(
@@ -765,6 +906,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                 value={salidaPanama}
                 onChange={(e) => { setSalidaPanama(e.target.value); setErrors((p) => ({ ...p, salidaPanama: '' })); }}
                 error={errors.salidaPanama}
+                inputRef={salidaPanamaRef}
               />
               <TimeConversion dtLocal={salidaPanama} label="Salida" />
               {helpTip(
@@ -784,6 +926,7 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
                 value={salidaHotel}
                 onChange={(e) => { setSalidaHotel(e.target.value); setErrors((p) => ({ ...p, salidaHotel: '' })); }}
                 error={errors.salidaHotel}
+                inputRef={salidaHotelRef}
               />
               {helpTip(
                 'salida_hotel',
@@ -855,7 +998,11 @@ export function RequestFormPage({ onNavigate, requestId, isPublic = false }: Req
             <div className="pb-6 text-center">
               <p className="text-sm text-slate-400 leading-relaxed">
                 Si tiene alguna dificultad para completar este formulario,
-                comuníquese con el hotel al{' '}
+                comuníquese con el hotel por{' '}
+                <a href="https://wa.me/50763151015" target="_blank" rel="noopener noreferrer" className="text-green-600 font-semibold hover:underline">
+                  WhatsApp
+                </a>
+                {' '}o llame al{' '}
                 <a href="tel:+5076315-1015" className="text-sky-600 font-semibold hover:underline">
                   +507 6315-1015
                 </a>
